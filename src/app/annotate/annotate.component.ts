@@ -1,7 +1,7 @@
 import { ReviewComponent } from './../review/review.component';
 import { LayoutModule } from '@angular/cdk/layout';
 import { Component, OnInit, ViewChild, Input } from '@angular/core';
-import { NgForm, FormGroup, FormBuilder, FormArray } from '@angular/forms';
+import { NgForm, FormGroup, FormBuilder, FormArray, FormControl } from '@angular/forms';
 // import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTable, MatTableDataSource } from '@angular/material/table';
@@ -20,12 +20,15 @@ export class AnnotateComponent implements OnInit {
   // tslint:disable-next-line: no-input-rename
   @Input('templateId') templateId;
   dataSource = new MatTableDataSource<any>();
+  fieldSubmitted: true;
 
   displayedColumns = ['label', 'type', 'text'];
 
   templateForm: FormGroup;
 
   savedTemplateFields;
+  storedFieldNames = [];
+  selectedFormIndex;
 
   rectReady = false;
 
@@ -57,13 +60,16 @@ export class AnnotateComponent implements OnInit {
     // this.addTemplate();
     // this.aService.enableCanvas();
     // this.patchTextField();
+    this.aService.AnnotateCalled$.subscribe((res) => {
+      this.patchTextField(res);
+    });
 
   }
 
-  ngDoCheck() {
-    this.data = this.aService.getData();
-    this.responseText = this.aService.getText();
-  }
+  // ngDoCheck() {
+  //   this.data = this.aService.getData();
+  //   this.responseText = this.aService.getText();
+  // }
 
   // tslint:disable-next-line: use-lifecycle-interface
   ngOnDestroy(): void {
@@ -77,20 +83,33 @@ export class AnnotateComponent implements OnInit {
 
   newTemplate(): FormGroup {
     return this.fb.group({
-      label: '',
-      text: '',
-      type: '',
+      label: new FormControl(),
+      text: new FormControl(),
+      type: new FormControl(),
     });
   }
 
   addTemplate() {
     this.templateArray().push(this.newTemplate());
+    this.selectedFormIndex = this.templateArray().length - 1;
   }
 
   removeTemplate(i: number) {
     this.templateArray().removeAt(i);
   }
-
+  // checkSubmission(f) {
+  //   // if (t.value.label ==)
+  //   console.log('checkSubmission');
+  //   this.savedTemplateFields.find((t) => {
+  //     if (t.name === f.value.label) {
+  //       console.log('true', t.name, f.value.label);
+  //       return true;
+  //     } else {
+  //       console.log('false', t.name, f.value.label);
+  //       return false;
+  //     }
+  //   });
+  // }
   patchForms(obj) {
     this.savedTemplateFields = obj;
     this.aService.getDataTypes().subscribe((res) => {
@@ -110,41 +129,25 @@ export class AnnotateComponent implements OnInit {
           });
 
         this.templateArray().push(template);
+        // this.storedFieldNames.push(element.name);
 
       });
     });
   }
 
-  // patchTextField() {
-  //   console.log('patchtextfield');
-  //   // const template =
-  //   //       this.fb.group({
-  //   //         label: element.name,
-  //   //         text: this.responseText,
-  //   //         type,
-  //   //       });
-  //   console.log(this.templateArray());
-  //   const ta = this.templateArray();
-  //   ta.at(0).patchValue({ text: this.responseText });
-  //   // ta.patchValue([]);
-  // }
+  patchTextField(text) {
+    const i = this.selectedFormIndex;
+    console.log(i);
+    this.templateArray().at(i).get('text').patchValue(text);
+  }
   onTemplateSubmit(t, i) {
-    // console.log('aaaaa', i);
-    // console.log('bbbbb', t.value.type);
-    // console.log('bbbbb', this.validTypes);
-    // console.log('bbbbb', i);
-    // console.log(this.templateForm.value.templateArray[i]);
     let typeId;
     this.validTypes.forEach(type => {
-      // console.log(type.name);
-      // console.log(t.value.type);
       if (type.name === t.value.type) {
-        // console.log("inside if");
         typeId = type.id;
       }
     });
 
-    console.log(this.templateId);
     const fieldData = {
       label: t.value.label,
       type: typeId,
@@ -152,9 +155,10 @@ export class AnnotateComponent implements OnInit {
       sequence_num: i,
       template: this.templateId,
     };
-    console.log(fieldData);
+    // console.log(fieldData);
     this.aService.postTemplateFieldData(fieldData).subscribe(res => {
       console.log(res);
+      this.fieldSubmitted = true;
     }, error => console.log(error));
     //   // API Call to confirm field data.
   }
@@ -163,11 +167,10 @@ export class AnnotateComponent implements OnInit {
     console.log(this.templateForm.controls);
   }
 
-  onSelect(f) {
-    // console.log(f.value);
-
+  onSelect(f, i) {
+    this.selectedFormIndex = i;
     this.savedTemplateFields.find((t) => {
-      if (t.name == f.value.label) {
+      if (t.name === f.value.label) {
         console.log(t);
 
         const coordinates = {

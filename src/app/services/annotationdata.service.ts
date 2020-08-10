@@ -35,7 +35,7 @@ export class AnnotationdataService {
       bounding_box_w_value: null,
       bounding_box_h_value: null,
       is_bg_colored: false,
-      is_active: false,
+      is_active: true,
       template: null,
       data_type: null,
       parent_field: null,
@@ -47,11 +47,14 @@ export class AnnotationdataService {
 
   // private componentMethodCallSource = new Subject<any>();
   private callKonvaSubject = new Subject<any>();
-
-
   // Observable string streams
   // componentMethodCalled$ = this.componentMethodCallSource.asObservable();
   konvaCalled$ = this.callKonvaSubject.asObservable();
+
+  private callAnnotateSubject = new Subject<any>();
+  // Observable string streams
+  // componentMethodCalled$ = this.componentMethodCallSource.asObservable();
+  AnnotateCalled$ = this.callAnnotateSubject.asObservable();
 
 
   constructor(private http: HttpClient) { }
@@ -66,6 +69,10 @@ export class AnnotationdataService {
       page_number
     }
     this.callKonvaSubject.next(obj);
+  }
+  callAnnotateComponent(responseText) {
+    // responseText
+    this.callAnnotateSubject.next(responseText);
   }
 
   isPaintingEnabled() {
@@ -169,6 +176,11 @@ export class AnnotationdataService {
     const POST_URL: string = environment.API_BASE_URL + 'data-types/';
     return this.http.get<any>(POST_URL, { headers: params });
   }
+  getDocumentTypes(): Observable<any> {
+    const params = new HttpHeaders({ accept: 'application/json', Authorization: 'Basic YWRtaW46YWRtaW4=' });
+    const POST_URL: string = environment.API_BASE_URL + 'document-types/';
+    return this.http.get<any>(POST_URL, { headers: params });
+  }
 
   addDocument(obj): Observable<any> {
     const stringObj = JSON.stringify(obj);
@@ -178,16 +190,16 @@ export class AnnotationdataService {
     return this.http.post<any>(POST_URL, stringObj, { headers: params });
   }
 
-  extractText(obj, page_num): Observable<any> {
+  extractText(obj, templateId, page_num): Observable<any> {
     // const stringObj = JSON.stringify(obj);
     const object = {
       page_num: page_num,
       coordinates: obj
     };
-    const id = 2;
+    console.log(object);
     console.log(object.page_num + "" + object.coordinates + "stringjson")
     const params = new HttpHeaders({ accept: 'application/json', Authorization: 'Basic YWRtaW46YWRtaW4=' });
-    const POST_URL: string = environment.API_BASE_URL + 'templates/' + id + '/extract_text/';
+    const POST_URL: string = environment.API_BASE_URL + 'templates/' + templateId + '/extract_text/';
     return this.http.post<any>(POST_URL, object, { headers: params });
   }
 }
